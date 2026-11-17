@@ -416,7 +416,7 @@ async function handle(msg) {
       return {
         protocolVersion: '2024-11-05',
         capabilities: { tools: {} },
-        serverInfo: { name: 'golddigger-mcp', version: '2.1.0' },
+        serverInfo: { name: 'golddigger-mcp', version: '2.2.0' },
       };
 
     case 'notifications/initialized':
@@ -518,5 +518,5 @@ process.stdin.on('end', () => {
 
 // stderr 用于日志 (stdout 是协议通道, 不能污染)
 process.stderr.write(
-  `[golddigger-mcp] v2.0.0 ready · base=${BASE_URL} · key=${API_KEY ? API_KEY.slice(0, 4) + '…' : '(未设置)'}\n`
+  `[golddigger-mcp] v2.2.0 ready · base=${BASE_URL} · key=${API_KEY ? API_KEY.slice(0, 4) + '…' : '(未设置)'}\n`
 );
