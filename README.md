@@ -7,6 +7,7 @@
 
 | | |
 |---|---|
+| 当前版本 | v2.2.0 |
 | 服务端 | <https://golddigger.gold> |
 | 商务合作 | factorihub@outlook.com |
 | 备案号 | 浙ICP备2026078906号-1 |

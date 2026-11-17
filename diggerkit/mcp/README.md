@@ -1,4 +1,4 @@
-# golddigger-mcp — DiggerKit MCP server（Node.js · v2.2）
+# golddigger-mcp — DiggerKit MCP server（Node.js · v2.2.0）
 
 零依赖 Node 实现（Node 18+），工具集**只读**：不提供任何写入 / 外发能力。
 
