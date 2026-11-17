@@ -115,6 +115,7 @@ git push origin main
 
 | 版本 | 日期 | 内容 |
 |---|---|---|
+| v2.2.0 | 2026-11-17 | MCP 支持标准换行分帧（原来只吃 LSP 分帧 → 标准 MCP 客户端连不上）；`--api-key` 真正生效；客户包换真 SDK（含租户自己的关键词）；包内不再带历史坏 zip |
 | v2.1.0 | 2026-11-11 | MCP server 重写：零依赖 Node、只读工具集、`check_readiness` / `check_answerable` |
 | v2.0.0 | 2026-11-11 | Python SDK 重写：纯标准库、错误分层（Quota / InvalidKey / RateLimited / ServerError） |
 | v1.1.0 | 2026-10-09 | Agent 授权机制（4 维度控制）+ `diggerkit_tools.py` 工具箱（服务端） |
