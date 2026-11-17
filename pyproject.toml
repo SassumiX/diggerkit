@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diggerkit"
+version = "2.1.0"
+description = "DiggerKit · GoldDigger SI Agent 的金铲子（Python SDK + MCP server）"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "GoldDigger" }]
+keywords = ["golddigger", "diggerkit", "b2b", "lead-generation", "mcp", "si-agent"]
+dependencies = []
+
+[project.optional-dependencies]
+legacy = ["requests>=2.28"]
+
+[project.scripts]
+diggerkit = "diggerkit.client:main"
+
+[tool.setuptools]
+packages = ["diggerkit", "diggerkit.mcp"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"diggerkit.mcp" = ["*.json", "node/*"]
