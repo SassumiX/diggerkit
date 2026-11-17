@@ -231,6 +231,35 @@ class DiggerKitClient:
                                          lead.get("gd_score", 0))
         return leads
 
+    def mine(self, query: str, country: str = "", industry: str = "",
+             limit: int = 10, tier: str = "C+") -> List[Dict[str, Any]]:
+        """
+        挖客行动池 —— 真实端点 POST /api/diggerkit/mine
+
+        与 search_leads 的区别（配额池不同，勿混用）:
+          search_leads -> POST /api/search        -> API 池（4 档订阅次数/天）
+          mine         -> POST /api/diggerkit/mine -> 挖客行动池（1000 Quota/天 = 10 次/天）
+        两池互不占用，各 UTC 00:00 重置。
+
+        tier  "C"  = 基础版（不深度抓取）
+              "C+" = 增强版（深度抓取，消耗更多算力配额）
+
+        body: {key, query, country, industry, limit, tier}
+        返回: leads 列表，每条含 score（0-100）/ company / website / email / phone ...
+        """
+        tier = str(tier).upper()
+        if tier not in ("C", "C+"):
+            tier = "C+"
+        body = {
+            "key": self.api_key,
+            "query": query,
+            "country": country,
+            "industry": industry,
+            "limit": int(limit),
+            "tier": tier,
+        }
+        return self._req("POST", "/api/diggerkit/mine", body=body)
+
     def list_leads(self) -> Dict[str, Any]:
         """
         列出本租户已存的线索 (只读, 不消耗配额)
@@ -289,6 +318,10 @@ def main() -> int:
     p.add_argument("--limit", "-l", type=int, default=10, help="1-10")
     p.add_argument("--quota", action="store_true", help="只查配额")
     p.add_argument("--leads", action="store_true", help="列出已存线索")
+    p.add_argument("--mine", action="store_true",
+                   help="走挖客行动池 (POST /api/diggerkit/mine)")
+    p.add_argument("--tier", default="C+", choices=["C", "C+"],
+                   help="挖客档位: C=基础 / C+=增强 (默认 C+)")
     p.add_argument("--api-key", default="", help="API Key (默认读环境变量)")
     p.add_argument("--base-url", default="", help="后端地址")
     args = p.parse_args()
@@ -314,8 +347,13 @@ def main() -> int:
             p.print_help()
             return 1
 
-        leads = client.search_leads(args.query, country=args.country,
-                                    industry=args.industry, limit=args.limit)
+        if args.mine:
+            leads = client.mine(args.query, country=args.country,
+                                industry=args.industry, limit=args.limit,
+                                tier=args.tier)
+        else:
+            leads = client.search_leads(args.query, country=args.country,
+                                        industry=args.industry, limit=args.limit)
         print(f"🔍 {len(leads)} 条线索 (query={args.query})\n")
         for lead in leads:
             print(f"  · {lead.get('company') or lead.get('name') or '?'} "

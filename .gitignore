@@ -8,3 +8,5 @@ venv/
 .env
 *.log
 leads.csv
+.bak_mine_*
+tools_patch_sdk_mine.py

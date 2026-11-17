@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diggerkit"
-version = "2.1.0"
+version = "2.2.0"
 description = "DiggerKit · GoldDigger SI Agent 的金铲子（Python SDK + MCP server）"
 readme = "README.md"
 requires-python = ">=3.8"

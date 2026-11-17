@@ -26,7 +26,10 @@ from .client import (
 # 客户文档里写的是 `from diggerkit import Client`
 Client = DiggerKitClient
 
-__version__ = "2.1.0"
+# dashboard 的 DiggerKit-C+ 配置生成器用的是 `DiggerKit` —— 同义别名
+DiggerKit = DiggerKitClient
+
+__version__ = "2.2.0"
 
 _LEGACY = {
     "AgentTokenClient",
@@ -41,6 +44,7 @@ _LEGACY = {
 
 __all__ = [
     "Client",
+    "DiggerKit",
     "DiggerKitClient",
     "DiggerKitError",
     "InvalidKey",
