@@ -132,6 +132,29 @@ const TOOLS = [
     },
   },
   {
+    name: 'mine_leads',
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    description:
+      '挖客行动 (DiggerKit C / C+ 档): 按产品关键词 + 国家 + 行业挖潜在买家, ' +
+      '结果自动存进你自己的线索库, 并返回公司 / 网站 / 邮箱; ' +
+      'C+ 额外给电话 / 联系人 / 意向评分 (深度抓官网)。' +
+      '⚠️ 走【挖客行动池】(1000 Quota/天, 每次行动扣 100 → 每天 10 次), ' +
+      '与 search_leads 的 API 池互不占用。' +
+      'tier: C = 基础 (最多 8 条) / C+ = 增强 (最多 15 条)。' +
+      '数据只返回给调用方, 我们不持有。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: '产品关键词 (必填), 如 "全棉府绸 133x72 GOTS"' },
+        country: { type: 'string', description: '目标国家, 如 Germany / DE' },
+        industry: { type: 'string', description: '行业, 如 textile / building' },
+        tier: { type: 'string', description: 'C = 基础 / C+ = 增强', default: 'C+', enum: ['C', 'C+'] },
+        limit: { type: 'integer', description: '返回条数 (C 上限 8 / C+ 上限 15)', minimum: 3, maximum: 20 },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'check_answerable',
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     description:
@@ -282,6 +305,51 @@ async function t_search_leads(args) {
   };
 }
 
+async function t_mine_leads(args) {
+  const query = String(args.query || '').trim();
+  if (!query) throw new DiggerKitError('query 必填', 'bad_request');
+  const tier = String(args.tier || 'C+').toUpperCase() === 'C' ? 'C' : 'C+';
+  const maxResults = tier === 'C' ? 8 : 15;
+  const limit = Math.max(3, Math.min(Number(args.limit) || maxResults, 20));
+
+  // 后端 /api/diggerkit/mine 从 body 取凭据 (body.key / body.key4)，
+  // X-API-KEY header 只过鉴权中间件 —— 两个都要给，否则 400 "请先登录"
+  const body = { key: API_KEY, query, limit, tier };
+  if (args.country) body.country = String(args.country).trim();
+  if (args.industry) body.industry = String(args.industry).trim();
+
+  const r = await apiRequest('POST', '/api/diggerkit/mine', body);
+  const leads = Array.isArray(r) ? r : (r.leads || []);
+
+  return {
+    count: leads.length,
+    tier: r.tier || tier,
+    tier_label: r.tier_label || '',
+    query: r.query || query,
+    saved: r.saved !== undefined ? r.saved : leads.length,
+    with_email: r.with_email !== undefined ? r.with_email : 0,
+    hot: r.hot !== undefined ? r.hot : 0,
+    leads,
+    _field_contract: {
+      note: '本端点的评分字段是 score (DiggerKit C+ 意向评分 0-100), 不是 gd_score',
+      company: '公司名',
+      website: '官网',
+      email: '邮箱',
+      phone: '电话 (C+ 才有)',
+      contact_name: '联系人 (C+ 才有)',
+      country: '国家',
+      industry: '行业',
+      score: 'DiggerKit C+ 意向评分 0-100',
+    },
+    _provenance: {
+      source: 'POST /api/diggerkit/mine',
+      consumed_pool: '挖客行动池 (1000 Quota/天, 每次行动扣 100)',
+      actions_left: r.dig_actions_left,
+      note: '结果已存进你自己的线索库, 平台不持有买家数据',
+    },
+  };
+}
+
 async function t_check_answerable(args) {
   const query = String(args.query || '').trim();
   const want = Math.max(1, Number(args.limit) || 10);
@@ -318,6 +386,7 @@ const HANDLERS = {
   check_readiness: t_check_readiness,
   check_quota: t_check_quota,
   search_leads: t_search_leads,
+  mine_leads: t_mine_leads,
   check_answerable: t_check_answerable,
 };
 

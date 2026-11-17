@@ -246,6 +246,7 @@ class DiggerKitClient:
 
         body: {key, query, country, industry, limit, tier}
         返回: leads 列表，每条含 score（0-100）/ company / website / email / phone ...
+        端点还返回 saved / with_email / hot 等统计，挖客池余额用 check_quota() 查。
         """
         tier = str(tier).upper()
         if tier not in ("C", "C+"):
@@ -258,7 +259,18 @@ class DiggerKitClient:
             "limit": int(limit),
             "tier": tier,
         }
-        return self._req("POST", "/api/diggerkit/mine", body=body)
+        r = self._req("POST", "/api/diggerkit/mine", body=body)
+        # 与 search_leads 保持一致: 返回 leads 列表
+        # (端点原始响应是 dict: {ok,tier,found,saved,with_email,hot,leads,...})
+        if isinstance(r, dict):
+            leads = r.get("leads") or []
+        else:
+            leads = r if isinstance(r, list) else []
+        for lead in leads:
+            if isinstance(lead, dict) and "score" not in lead:
+                lead["score"] = lead.get("composite_score",
+                                         lead.get("gd_score", 0))
+        return leads
 
     def list_leads(self) -> Dict[str, Any]:
         """
