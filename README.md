@@ -44,8 +44,8 @@ pip install -e ".[legacy]"
 from diggerkit import Client
 
 c = Client(api_key="gds_你的KEY")     # 供应商 gds_ / 买家 gdb_
-print(c.quota())                      # 配额
-leads = c.search_leads(keywords=["silk scarf"], lang="es")
+print(c.check_quota())                 # 配额
+leads = c.search_leads(query="silk scarf", country="AE", limit=10)
 ```
 
 也可以直接用命令行：
@@ -54,7 +54,7 @@ leads = c.search_leads(keywords=["silk scarf"], lang="es")
 python -m diggerkit.client --api-key gds_你的KEY --query "silk scarf" --country AE
 ```
 
-**认证**：API Key 走 `X-API-KEY` header，来源 <https://golddigger.gold/ui/>。
+**认证**：API Key 走 `X-API-KEY` header，注册后在看板 <https://golddigger.gold/dashboard.html> 查看。
 Agent 授权走 `AgentTokenClient(agent_token="agt_...")`。
 
 ---

@@ -517,20 +517,25 @@ process.stdin.on('data', (chunk) => {
       }
     }
 
-    // ② LSP: Content-Length 分帧
-    const headerEnd = buffer.indexOf('\r\n\r\n');
-    if (headerEnd === -1) break;
+    // ② LSP: Content-Length 分帧（\r\n\r\n 与 \n\n 都吃）
+    let headerEnd = buffer.indexOf('\r\n\r\n');
+    let sepLen = 4;
+    if (headerEnd === -1) {
+      headerEnd = buffer.indexOf('\n\n');
+      sepLen = 2;
+      if (headerEnd === -1) break;
+    }
 
     const header = buffer.slice(0, headerEnd).toString('ascii');
     const m = /Content-Length:\s*(\d+)/i.exec(header);
     if (!m) {
       // 无法解析头, 丢弃这段
-      buffer = buffer.slice(headerEnd + 4);
+      buffer = buffer.slice(headerEnd + sepLen);
       continue;
     }
     outFraming = 'lsp';
     const len = parseInt(m[1], 10);
-    const bodyStart = headerEnd + 4;
+    const bodyStart = headerEnd + sepLen;
     if (buffer.length < bodyStart + len) break; // 还没收全
 
     const body = buffer.slice(bodyStart, bodyStart + len).toString('utf8');

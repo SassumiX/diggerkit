@@ -29,7 +29,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional
 
-__version__ = "2.0.0"
+__version__ = "2.2.0"
 
 BASE_URL = os.getenv("GOLDDIGGER_BASE_URL", "https://golddigger.gold")
 
