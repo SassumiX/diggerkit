@@ -4,10 +4,10 @@
 
     from diggerkit import Client
     c = Client(api_key="gds_你的KEY")
-    print(c.quota())
+    print(c.check_quota())
 
 说明：
-  - Client / DiggerKitClient = v2.0.0 客户端（纯标准库，无第三方依赖）
+  - Client / DiggerKitClient = v2.2.0 客户端（纯标准库，无第三方依赖）
   - GolddiggerClient / AgentTokenClient = v1.1 旧版 SDK（需 pip install "diggerkit[legacy]"）
 
 ⚠️ 旧版 SDK 依赖 requests，是可选依赖 —— 这里用 PEP 562 延迟导入，
