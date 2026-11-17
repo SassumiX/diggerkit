@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * golddigger-mcp — DiggerKit-C+ MCP server v2.0 (2026-11-11)
+ * golddigger-mcp — DiggerKit MCP server v2.2 (2026-11-17)
  *
  * ⚠️ v1.0 是空壳: package.json + mcp.json 两个文件, 没有 index.js,
  *    并且 mcp.json 指向的 npm 包 golddigger-mcp 从未发布 (404)。
@@ -16,13 +16,23 @@
  *   - 不做裸数据浏览: 只暴露"能做什么"和"配额多少", 客户自己的数据自己存
  *
  * 认证: GOLDDIGGER_API_KEY (gds_xxx 供应商 / gdb_xxx 买家)
- *       或启动参数 --api-key
+ *       或启动参数 --api-key（命令行优先）
  */
 
 'use strict';
 
-const BASE_URL = (process.env.GOLDDIGGER_BASE_URL || 'https://golddigger.gold').replace(/\/$/, '');
-const API_KEY = process.env.GOLDDIGGER_API_KEY || '';
+// ── 启动参数（命令行优先于环境变量）──
+//   node index.js --api-key gds_xxx [--base-url https://golddigger.gold]
+const argv = process.argv.slice(2);
+function argVal(flag) {
+  const i = argv.indexOf(flag);
+  if (i !== -1 && argv[i + 1] && !argv[i + 1].startsWith('--')) return argv[i + 1];
+  const hit = argv.find((a) => a.startsWith(flag + '='));
+  return hit ? hit.slice(flag.length + 1) : '';
+}
+
+const BASE_URL = (argVal('--base-url') || process.env.GOLDDIGGER_BASE_URL || 'https://golddigger.gold').replace(/\/$/, '');
+const API_KEY = argVal('--api-key') || process.env.GOLDDIGGER_API_KEY || '';
 const TIMEOUT_MS = Number(process.env.GOLDDIGGER_TIMEOUT_MS || 60000);
 
 // ── 错误分层 (与 SDK / 后端 error code 对齐) ──
@@ -394,9 +404,15 @@ const HANDLERS = {
 // MCP stdio 协议
 // ══════════════════════════════════════════════════════════════
 
+// 出站分帧：跟随入站格式（标准 MCP 客户端只认换行分帧）
+let outFraming = 'newline';
 function send(msg) {
   const body = JSON.stringify(msg);
-  process.stdout.write(`Content-Length: ${Buffer.byteLength(body, 'utf8')}\r\n\r\n${body}`);
+  if (outFraming === 'lsp') {
+    process.stdout.write(`Content-Length: ${Buffer.byteLength(body, 'utf8')}\r\n\r\n${body}`);
+  } else {
+    process.stdout.write(body + '\n');
+  }
 }
 
 function errPayload(e) {
@@ -460,14 +476,48 @@ async function handle(msg) {
   }
 }
 
-// ── 主循环: 读 stdin 的 LSP 风格分帧 ──
+// ── 主循环: 同时支持两种 stdin 分帧 ──
+//   ① 标准 MCP 换行分帧 (JSON-RPC over newline) —— Claude Desktop / VS Code / MCP Inspector 走这个
+//   ② LSP Content-Length 分帧 —— 兼容早期自研 wrapper
 let buffer = Buffer.alloc(0);
 const pending = new Set();   // 在途请求 (2026-11-11: stdin 关闭时等它们跑完)
+
+function dispatch(msg) {
+  const task = Promise.resolve(handle(msg))
+    .then((result) => {
+      if (result === null || msg.id === undefined) return; // notification
+      send({ jsonrpc: '2.0', id: msg.id, result });
+    })
+    .catch((e) => {
+      if (msg.id === undefined) return;
+      send({
+        jsonrpc: '2.0',
+        id: msg.id,
+        error: { code: -32603, message: e.message || String(e) },
+      });
+    });
+  pending.add(task);
+  task.finally(() => pending.delete(task));
+}
 
 process.stdin.on('data', (chunk) => {
   buffer = Buffer.concat([buffer, chunk]);
 
   while (true) {
+    // ① 标准 MCP: 一行一条 JSON-RPC
+    const nl = buffer.indexOf(0x0a);
+    if (nl !== -1) {
+      const line = buffer.slice(0, nl).toString('utf8').trim();
+      if (line.startsWith('{')) {
+        buffer = buffer.slice(nl + 1);
+        let msg = null;
+        try { msg = JSON.parse(line); } catch { msg = null; }
+        if (msg) dispatch(msg);
+        continue;   // 坏行丢弃，防死循环
+      }
+    }
+
+    // ② LSP: Content-Length 分帧
     const headerEnd = buffer.indexOf('\r\n\r\n');
     if (headerEnd === -1) break;
 
@@ -478,6 +528,7 @@ process.stdin.on('data', (chunk) => {
       buffer = buffer.slice(headerEnd + 4);
       continue;
     }
+    outFraming = 'lsp';
     const len = parseInt(m[1], 10);
     const bodyStart = headerEnd + 4;
     if (buffer.length < bodyStart + len) break; // 还没收全
@@ -492,21 +543,7 @@ process.stdin.on('data', (chunk) => {
       continue;
     }
 
-    const task = Promise.resolve(handle(msg))
-      .then((result) => {
-        if (result === null || msg.id === undefined) return; // notification
-        send({ jsonrpc: '2.0', id: msg.id, result });
-      })
-      .catch((e) => {
-        if (msg.id === undefined) return;
-        send({
-          jsonrpc: '2.0',
-          id: msg.id,
-          error: { code: -32603, message: e.message || String(e) },
-        });
-      });
-    pending.add(task);
-    task.finally(() => pending.delete(task));
+    dispatch(msg);
   }
 });
 

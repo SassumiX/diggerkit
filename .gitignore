@@ -10,3 +10,9 @@ venv/
 leads.csv
 .bak_mine_*
 tools_patch_sdk_mine.py
+
+.bak_mcp/
+
+backup/
+/finalize_diggerkit_repo.py
+/fix_mcp_dual_framing.py

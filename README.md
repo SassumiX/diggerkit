@@ -34,7 +34,7 @@ pip install -e ".[legacy]"
 
 ### 国内网络不通 GitHub 时
 
-用离线 bundle 走服务器侧更新通道（见下方「离线更新通道」），或直接取 `releases/` 下的 zip。
+用离线 bundle 走服务器侧更新通道（见下方「离线更新通道」），或直接取仓库 `releases/` 下的 zip。
 
 ---
 
@@ -120,7 +120,7 @@ git push origin main
 | v1.1.0 | 2026-10-09 | Agent 授权机制（4 维度控制）+ `diggerkit_tools.py` 工具箱（服务端） |
 | v1.0.0 | 2026-10-08 | 首个公开包 |
 
-历史 zip 全档在 `releases/`。
+历史 zip 全档在仓库的 `releases/`（客户下载包里只放当前版本，不带历史坏包）。
 
 ---
 
